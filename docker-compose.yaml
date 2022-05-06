@@ -1,0 +1,47 @@
+version: '3'
+
+volumes:
+  postgres_data:
+      driver: local
+
+services:
+  postgres:
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - 5433:5432
+  nest-keycloak:
+      image: jboss/keycloak:10.0.0
+      command:
+        [
+          '-b',
+          '0.0.0.0',
+          '-Dkeycloak.migration.action=import',
+          '-Dkeycloak.migration.provider=dir',
+          '-Dkeycloak.migration.dir=/opt/jboss/keycloak/realm-config',
+          '-Dkeycloak.migration.strategy=OVERWRITE_EXISTING',
+          '-Djboss.socket.binding.port-offset=1000',
+          '-Dkeycloak.profile.feature.upload_scripts=enabled',
+        ]
+      volumes:
+        - ./realm-config:/opt/jboss/keycloak/realm-config
+      environment:
+        - KEYCLOAK_USER=user
+        - KEYCLOAK_PASSWORD=pass
+        - DB_VENDOR=POSTGRES
+        - DB_ADDR=postgres
+        - DB_DATABASE=keycloak
+        - DB_USER=user
+        - DB_SCHEMA=public
+        - DB_PASSWORD=pass
+      ports:
+        - 9080:9080
+        - 9443:9443
+        - 10990:10990
+      depends_on:
+        - postgres
